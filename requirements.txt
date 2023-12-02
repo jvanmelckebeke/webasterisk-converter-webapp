@@ -1,2 +1,4 @@
 hurry.filesize==0.9
-streamlit==1.29.0
+# streamlit==1.29.0
+pywebio==1.8.3
+reflex==0.3.4
