@@ -1,11 +1,11 @@
 import subprocess
 import time
-import gradio as gr
+from streamlit import progress as Progress
 
 from src.tools import convert_input_to_output_path, filesize, bytes2human, convert_input_to_output_directories
 
 
-def ffmpeg_process(input_file_path, output_file_path, subprocess_args, progress):
+def ffmpeg_process(input_file_path, output_file_path, subprocess_args, progress_bar):
     with subprocess.Popen(subprocess_args) as process:
         raw_input_size = filesize(input_file_path)
         input_size = bytes2human(raw_input_size)
@@ -21,30 +21,32 @@ def ffmpeg_process(input_file_path, output_file_path, subprocess_args, progress)
 
             print(f"input size: {input_size}, output size: {output_size}")
 
-            progress((raw_output_size, raw_input_size), unit="bytes")
+            progress_bar.progress(value=(raw_output_size / raw_input_size), text=f"processing: {output_size} / {input_size}")
 
             time.sleep(1)
 
         if process.returncode != 0:
             raise Exception("ffmpeg failed to convert the file")
+
+        progress_bar.progress(value=1.0, text="done!")
     return output_file_path
 
 
-def media_to_mp4(input, progress=gr.Progress()):
+def media_to_mp4(input, progress_bar):
     if input is None:
         return None
 
     if input.endswith(".webp"):
-        return animated_webp_to_mp4(input, progress)
+        return animated_webp_to_mp4(input, progress_bar)
     elif input.endswith(".webm"):
-        return webm_to_mp4(input, progress)
+        return webm_to_mp4(input, progress_bar)
     elif input.endswith(".gif"):
-        return webm_to_mp4(input, progress)
+        return webm_to_mp4(input, progress_bar)
     else:
         raise Exception("unsupported file format")
 
 
-def webm_to_mp4(input, progress=gr.Progress()):
+def webm_to_mp4(input, progress=Progress(0)):
     input_file_path = input
     output_file_path = convert_input_to_output_path(input_file_path, "mp4")
 
@@ -68,7 +70,7 @@ def webm_to_mp4(input, progress=gr.Progress()):
     return ffmpeg_process(input_file_path, output_file_path, subprocess_args, progress)
 
 
-def animated_webp_to_mp4(input, progress=gr.Progress()):
+def animated_webp_to_mp4(input, progress=Progress(0)):
     input_file_path = input
     output_file_path = convert_input_to_output_path(input_file_path, "mp4")
 

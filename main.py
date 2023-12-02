@@ -1,47 +1,50 @@
-#!/bin/env python3
+import streamlit as st
 import os
-
-import gradio as gr
-
 from src.image_converter import webp_to_jpg
 from src.video_converter import media_to_mp4
 
 
-def create_interface():
-    with gr.Blocks(title="Webany converter") as iface:
-        with gr.Tab("webp to jpg"):
-            with gr.Row():
-                with gr.Column(scale=1):
-                    in_image = gr.File(label="Input", file_types=[".webp"])
-                with gr.Column(scale=1):
-                    out_image = gr.Image(label="Output")
-            with gr.Row():
-                img_submit_btn = gr.Button("Submit", variant="primary")
+def webp_to_jpg_app():
+    in_image = st.file_uploader("Upload WebP File", type=["webp"])
 
-            img_submit_btn.click(
-                fn=webp_to_jpg, inputs=in_image, outputs=out_image)
-        with gr.Tab("to mp4"):
-            with gr.Row():
-                with gr.Column(scale=1):
-                    in_video = gr.File(label="Input", file_types=[
-                        ".webm", ".webp", ".gif"])
-                with gr.Column(scale=1):
-                    out_video = gr.Video(label="Output")
+    if st.button("Convert Image"):
+        # save the image to a temporary file
+        print(in_image)
+        in_name = in_image.name
 
-            with gr.Row():
-                submit_btn = gr.Button("Submit", variant="primary")
+        tmp_name = f"/tmp/{in_name}"
 
-            submit_btn.click(fn=media_to_mp4, inputs=[in_video], outputs=out_video)
-        return iface
+        with open(tmp_name, "wb") as f:
+            f.write(in_image.read())
+
+        out_image = webp_to_jpg(tmp_name)
+        st.image(out_image, caption="Output Image", use_column_width=True)
+
+
+def media_to_mp4_app():
+    in_video = st.file_uploader("Upload WebM, WebP, or GIF File", type=["webm", "webp", "gif"])
+
+    if st.button("Convert Video"):
+        progress_bar = st.progress(0, text="Converting...")
+        in_name = in_video.name
+        tmp_name = f"/tmp/{in_name}"
+        with open(tmp_name, "wb") as f:
+            f.write(in_video.read())
+
+        out_video = media_to_mp4(tmp_name, progress_bar)
+        st.video(out_video)
 
 
 def main():
-    port = int(os.environ.get("GRADIO_PORT", 8088))
-    iface = create_interface()
-    iface.queue()
+    with st.expander(label="webp to jpg", expanded=True):
+        st.header("webp to jpg")
 
-    iface.launch(server_port=port, server_name="0.0.0.0")
+        webp_to_jpg_app()
+
+    with st.expander(label="media to mp4"):
+        st.header("media to mp4")
+        media_to_mp4_app()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

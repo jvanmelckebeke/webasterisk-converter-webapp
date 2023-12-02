@@ -2,11 +2,13 @@ FROM python:3.10.0-alpine3.15 as build
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN --mount=type=cache,target=/var/cache/apt \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apk update && \
     apk add \
     build-base \
     gcc \
+    cmake \
+    git \
     g++ \
     gfortran \
     openblas-dev
@@ -32,16 +34,16 @@ RUN --mount=type=cache,target=/root/.cache/ pip install $PIP_OPTIONS -r requirem
 FROM python:3.10.0-alpine3.15 as runtime
 
 ENV PYTHONUNBUFFERED=1
-ENV GRADIO_PORT=8080
+ENV SERVER_PORT=8501
 
 ENV VIRTUAL_ENV=/venv
 ENV VENV_DIR=/venv
 
-RUN apk update && \
-  apk add --no-cache ffmpeg imagemagick && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    apk update && \
+    apk add --no-cache ffmpeg imagemagick && \
     rm -rf /var/cache/apk/*
 
-RUN mkdir -p /tmp/gradio
 
 WORKDIR /app
 
@@ -53,4 +55,4 @@ ENV PYTHONPATH="$VIRTUAL_ENV/lib/python3.10/site-packages:$PYTHONPATH"
 COPY main.py .
 COPY src/ src/
 
-CMD ["python", "main.py"]
+CMD ["streamlit", "run", "main.py", "--server.port=$SERVER_PORT", "--server.address=0.0.0.0"]
